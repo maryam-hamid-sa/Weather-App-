@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meteored Clone - Enhanced Map (Flask Backend)</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body, html { height: 100%; width: 100%; overflow: hidden; }
+        
+        .navbar { display: flex; align-items: center; height: 60px; background-color: white; padding: 0 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: absolute; top: 0; left: 0; width: 100%; z-index: 1000; }
+        .menu-btn { font-size: 24px; color: #00a0e3; background: none; border: 1px solid #e0e0e0; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 15px; }
+        .logo { font-size: 28px; font-weight: 800; color: #00a0e3; letter-spacing: 1px; margin-right: 40px; }
+        .nav-links { display: flex; gap: 25px; height: 100%; }
+        .nav-links a { text-decoration: none; color: #555; font-size: 16px; font-weight: 500; display: flex; align-items: center; height: 100%; position: relative; }
+        .nav-links a.active { color: #333; font-weight: 600; }
+        .nav-links a.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background-color: #00a0e3; }
+        
+        .search-container { margin-left: auto; display: flex; align-items: center; }
+        #city-search { padding: 8px 12px; border: 1px solid #ccc; border-radius: 20px 0 0 20px; outline: none; width: 220px; font-size: 14px; }
+        #search-btn { padding: 8px 20px; background: #00a0e3; color: white; border: none; border-radius: 0 20px 20px 0; cursor: pointer; font-weight: bold; }
+
+        #map { width: 100%; height: 100%; padding-top: 60px; z-index: 1; cursor: crosshair; }
+
+        .layer-menu-container { position: absolute; bottom: 40px; left: 30px; z-index: 1000; }
+        .layer-btn { width: 50px; height: 50px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 24px; transition: all 0.3s; }
+        .layer-btn:hover { background: #f0f8ff; }
+        
+        .layer-popup { position: absolute; bottom: 60px; left: 0; background: white; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); width: 180px; padding: 10px; display: none; flex-direction: column; gap: 5px; animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .layer-option { padding: 10px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #444; display: flex; align-items: center; gap: 10px; }
+        .layer-option:hover { background: #f0f0f0; }
+        .layer-option.active { background: #e3f2fd; color: #00a0e3; }
+
+        .weather-card { position: absolute; bottom: 30px; right: 30px; background: white; width: 450px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); padding: 25px; z-index: 1000; }
+        .city-name { font-size: 22px; font-weight: 700; color: #334; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .current-temp { color: #00a0e3; font-size: 28px; }
+        .forecast-tabs { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .day-tab { text-align: center; padding-bottom: 10px; flex: 1; transition: 0.2s; border-bottom: 2px solid transparent;}
+        .day-tab:hover { background-color: #f9f9f9; cursor: pointer; border-radius: 8px 8px 0 0; }
+        .day-tab.active { border-bottom: 2px solid #00a0e3; }
+        .day-name { font-size: 13px; color: #777; text-transform: uppercase; font-weight: 600; margin-top: 5px;}
+        .day-icon img { width: 45px; height: 45px; margin: 2px 0;}
+        .day-temps { font-size: 14px; font-weight: 700; }
+        .temp-max { color: #e53935; }
+        .temp-min { color: #1e88e5; }
+        
+        .chart-container { width: 100%; height: 160px; position: relative; margin-top: 15px;}
+        #error-msg { color: white; background: #e53935; font-weight: bold; font-size: 14px; position: absolute; top: 70px; right: 20px; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: none; z-index: 2000; }
+
+        .leaflet-popup-content-wrapper { background: rgba(64, 84, 102, 0.9) !important; border-radius: 10px !important; padding: 0 !important; color: white !important; box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important; }
+        .leaflet-popup-content { margin: 0 !important; width: 140px !important; }
+        
+        .leaflet-popup-tip-container { height: 40px !important; overflow: visible !important; margin-top: -1px;}
+        .leaflet-popup-tip { width: 1px !important; height: 40px !important; background: rgba(64, 84, 102, 0.9) !important; transform: none !important; margin: 0 auto !important; box-shadow: none !important; }
+
+        .leaflet-container a.leaflet-popup-close-button { color: white !important; right: 4px !important; top: 4px !important; width: 18px !important; height: 18px !important; border-radius: 50%; background: rgba(255,255,255,0.2); font-size: 12px !important; line-height: 18px !important; text-align: center; }
+        .leaflet-container a.leaflet-popup-close-button:hover { background: rgba(255,255,255,0.4); color: white !important;}
+
+        .popup-row { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+        .popup-row:last-child { border-bottom: none; cursor: pointer; padding-bottom: 12px;}
+        .popup-row:last-child:hover { background: rgba(255,255,255,0.1); border-radius: 0 0 10px 10px;}
+        
+        .popup-label { font-size: 11px; text-transform: uppercase; display: flex; align-items: center; gap: 5px; color: #b0c4de; font-weight: 600; letter-spacing: 0.5px;}
+        .popup-value { font-size: 15px; font-weight: bold; margin-top: 4px; padding-left: 18px; color: white;}
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <button class="menu-btn">≡</button>
+        <div class="logo">Weather Forecast</div>
+        <div class="nav-links">
+            <a href="#" class="active">Weather</a>
+            <a href="#">Apps</a>
+            <a href="#">News</a>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" id="city-search" placeholder="Search city or location..." value="Lahore">
+            <button id="search-btn">🔍 Search</button>
+        </div>
+    </nav>
+    
+    <div id="error-msg">Location not found!</div>
+    
+    <div id="map"></div>
+
+    <div class="layer-menu-container">
+        <div class="layer-popup" id="layerPopup">
+            <div class="layer-option active" data-layer="clouds_new">☁️ Clouds</div>
+            <div class="layer-option" data-layer="precipitation_new">🌧️ Precipitation</div>
+            <div class="layer-option" data-layer="temp_new">🌡️ Temperature</div>
+            <div class="layer-option" data-layer="wind_new">💨 Wind</div>
+        </div>
+        <div class="layer-btn" id="layerToggleBtn" title="Map Layers">🗺️</div>
+    </div>
+
+    <div class="weather-card">
+        <div class="city-name">
+            <span id="display-city">Loading...</span>
+            <span class="current-temp" id="current-temp">--°C</span>
+        </div>
+        <div class="forecast-tabs" id="forecast-container"></div>
+        <div class="chart-container"><canvas id="weatherChart"></canvas></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Flask se aayi hui API KEY
+        const API_KEY = "{{ api_key }}"; 
+        
+        let map = L.map('map', { zoomControl: false }).setView([31.5204, 74.3587], 5);
+        L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0','mt1','mt2','mt3'],
+            attribution: '&copy; Google Maps'
+        }).addTo(map);
+
+        let weatherLayer = null, marker = null, weatherChart = null;
+
+        function updateMapLayer(layerType) {
+            if (weatherLayer) map.removeLayer(weatherLayer);
+            weatherLayer = L.tileLayer(`https://tile.openweathermap.org/map/${layerType}/{z}/{x}/{y}.png?appid=${API_KEY}`, {
+                opacity: 0.65, attribution: '&copy; OpenWeatherMap'
+            }).addTo(map);
+        }
+
+        updateMapLayer('clouds_new');
+
+        const layerBtn = document.getElementById('layerToggleBtn');
+        const layerPopup = document.getElementById('layerPopup');
+        const layerOptions = document.querySelectorAll('.layer-option');
+
+        layerBtn.addEventListener('click', () => {
+            layerPopup.style.display = layerPopup.style.display === 'flex' ? 'none' : 'flex';
+        });
+
+        layerOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                layerOptions.forEach(opt => opt.classList.remove('active'));
+                e.target.classList.add('active');
+                updateMapLayer(e.target.getAttribute('data-layer'));
+                layerPopup.style.display = 'none';
+            });
+        });
+
+        const ctx = document.getElementById('weatherChart').getContext('2d');
+        function updateChart(labels, temps) {
+            if(weatherChart) weatherChart.destroy();
+            weatherChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Temp (°C)', data: temps,
+                        borderColor: '#e53935', backgroundColor: 'rgba(229, 57, 53, 0.1)',
+                        borderWidth: 2.5, pointBackgroundColor: '#ffb300', pointBorderColor: '#fff', 
+                        pointRadius: 4, pointHoverRadius: 6, fill: true, tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: true, backgroundColor: 'rgba(0,0,0,0.8)' } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: {size: 11} } },
+                        y: { display: false, min: Math.min(...temps) - 2, max: Math.max(...temps) + 2 }
+                    }
+                }
+            });
+        }
+
+        async function fetchWeather(type, val1, val2) {
+            try {
+                let weatherUrl, forecastUrl;
+                // DIRECT API CALL KI BAJAYE APNAY FLASK SERVER KO CALL KAR RAHAY HAIN
+                if(type === 'city') {
+                    weatherUrl = `/api/weather?q=${val1}`;
+                    forecastUrl = `/api/forecast?q=${val1}`;
+                } else if(type === 'coords') {
+                    weatherUrl = `/api/weather?lat=${val1}&lon=${val2}`;
+                    forecastUrl = `/api/forecast?lat=${val1}&lon=${val2}`;
+                }
+
+                const weatherRes = await fetch(weatherUrl);
+                if(!weatherRes.ok) throw new Error("Location not found");
+                const weatherData = await weatherRes.json();
+                
+                document.getElementById('error-msg').style.display = 'none';
+                
+                const placeName = weatherData.name ? `${weatherData.name}` : `Lat: ${val1.toFixed(2)}`;
+                const currentTempStr = Math.round(weatherData.main.temp) + "°C";
+                const iconCode = weatherData.weather[0].icon;
+                
+                let rainVal = weatherData.rain ? (weatherData.rain['1h'] || 0) : 0;
+                let snowVal = weatherData.snow ? (weatherData.snow['1h'] || 0) : 0;
+
+                document.getElementById('display-city').innerText = weatherData.name ? `${weatherData.name}, ${weatherData.sys.country}` : placeName;
+                document.getElementById('current-temp').innerText = currentTempStr;
+                document.getElementById('city-search').value = weatherData.name || '';
+
+                const lat = weatherData.coord.lat;
+                const lon = weatherData.coord.lon;
+                map.flyTo([lat, lon], map.getZoom(), { duration: 1 }); 
+                
+                if(marker) map.removeLayer(marker);
+                
+                const markerHtml = `
+                    <div style="background-color:#00a0e3; width:36px; height:36px; border-radius:50%; display:flex; justify-content:center; align-items:center; border:2.5px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.4);">
+                        <img src="https://openweathermap.org/img/wn/${iconCode}.png" style="width:30px;"/>
+                    </div>
+                    <div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid #00a0e3; margin: -2px auto 0;"></div>
+                `;
+                
+                var customIcon = L.divIcon({
+                    className: '', html: markerHtml,
+                    iconSize: [36, 46], iconAnchor: [18, 46], popupAnchor: [0, -60] 
+                });
+
+                const popupContent = `
+                    <div class="popup-row">
+                        <div class="popup-label">🌧️ Rain</div>
+                        <div class="popup-value">${rainVal} mm</div>
+                    </div>
+                    <div class="popup-row">
+                        <div class="popup-label">❄️ Snow</div>
+                        <div class="popup-value">${snowVal} cm</div>
+                    </div>
+                    <div class="popup-row" onclick="alert('More info clicked!')">
+                        <div class="popup-label" style="color: #ffd966; text-transform: none; font-size: 12px; gap: 8px;">
+                            <span style="border: 1px solid #ffd966; border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold;">i</span> More info
+                        </div>
+                    </div>
+                `;
+
+                marker = L.marker([lat, lon], {icon: customIcon}).addTo(map).bindPopup(popupContent, {closeButton: true}).openPopup();
+
+                const forecastRes = await fetch(forecastUrl);
+                const forecastData = await forecastRes.json();
+
+                let chartLabels = [], chartTemps = [];
+                for(let i=0; i<8; i++) {
+                    let date = new Date(forecastData.list[i].dt * 1000);
+                    chartLabels.push(date.getHours().toString().padStart(2, '0') + ":00");
+                    chartTemps.push(Math.round(forecastData.list[i].main.temp));
+                }
+                updateChart(chartLabels, chartTemps);
+
+                const daysMap = {};
+                const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                forecastData.list.forEach(item => {
+                    let dayName = daysOfWeek[new Date(item.dt * 1000).getDay()];
+                    if(!daysMap[dayName]) {
+                        daysMap[dayName] = { min: item.main.temp_min, max: item.main.temp_max, icon: item.weather[0].icon };
+                    } else {
+                        daysMap[dayName].min = Math.min(daysMap[dayName].min, item.main.temp_min);
+                        daysMap[dayName].max = Math.max(daysMap[dayName].max, item.main.temp_max);
+                    }
+                });
+
+                const container = document.getElementById('forecast-container');
+                container.innerHTML = '';
+                let count = 0;
+                for (const [day, data] of Object.entries(daysMap)) {
+                    if (count >= 5) break;
+                    let div = document.createElement('div');
+                    div.className = count === 0 ? 'day-tab active' : 'day-tab';
+                    div.innerHTML = `
+                        <div class="day-name">${day}</div>
+                        <div class="day-icon"><img src="https://openweathermap.org/img/wn/${data.icon}.png" alt="icon"></div>
+                        <div class="day-temps">
+                            <span class="temp-max">${Math.round(data.max)}°</span> 
+                            <span class="temp-min">${Math.round(data.min)}°</span>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                    count++;
+                }
+            } catch (err) {
+                document.getElementById('error-msg').style.display = 'block';
+                setTimeout(() => { document.getElementById('error-msg').style.display = 'none'; }, 3000);
+            }
+        }
+
+        map.on('click', function(e) { fetchWeather('coords', e.latlng.lat, e.latlng.lng); });
+        document.getElementById('search-btn').addEventListener('click', () => fetchWeather('city', document.getElementById('city-search').value));
+        document.getElementById('city-search').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') fetchWeather('city', document.getElementById('city-search').value);
+        });
+
+        fetchWeather('city', "Lahore");
+    </script>
+</body>
+</html>
