@@ -17,14 +17,14 @@ A simple, responsive, and interactive web application that provides real-time we
 
 ##  Project Structure
 
-```text
 Weather/
 │
 ├── app.py                 # Main Flask application file
 ├── Weather App.py         # Secondary backend/logic script
 └── templates/
     └── index.html         # Frontend user interface
-⚙️ Installation & Setup
+
+## ⚙️ Installation & Setup
 Follow these steps to run the project on your local machine:
 
 1. Clone the repository:
@@ -53,10 +53,10 @@ Bash
 python app.py
 Open your web browser and navigate to http://127.0.0.1:5000/ to view the app.
 
-🤝 Contributing
+## Contributing
 Contributions, issues, and feature requests are welcome! Feel free to check the issues page if you want to contribute.
 
-📝 License
+## 📝 License
 This project is open-source and available under the MIT License.
 
 
