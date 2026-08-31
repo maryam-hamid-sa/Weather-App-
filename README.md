@@ -32,15 +32,18 @@ Follow these steps to run the project on your local machine:
 Bash
 git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
 cd your-repo-name/Weather
+
 2. Create a Virtual Environment (Recommended):
 
 Bash
 python -m venv venv
 source venv/bin/activate  # On Windows use: venv\Scripts\activate
+
 3. Install Dependencies:
 
 Bash
 pip install flask requests
+
 4. Set up your API Key:
 
 Get a free API key from your chosen weather service (like OpenWeatherMap).
