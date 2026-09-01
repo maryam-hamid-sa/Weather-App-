@@ -30,8 +30,9 @@ Follow these steps to run the project on your local machine:
 1. Clone the repository:
 
 Bash
-git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
-cd your-repo-name/Weather
+git clone [https://github.com/maryam-hamid-sa/Weather-App-](https://github.com/maryam-hamid-sa/Weather-App-))
+
+cd Weather-App-
 
 2. Create a Virtual Environment (Recommended):
 
