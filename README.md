@@ -39,7 +39,6 @@ cd Weather-App-
 Bash
 python -m venv venv
 source venv/bin/activate 
-
 # On Windows use: venv\Scripts\activate
 
 3. Install Dependencies:
